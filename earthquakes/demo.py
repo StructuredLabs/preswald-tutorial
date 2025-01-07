@@ -1,6 +1,9 @@
-from preswald import text, connect, view, slider, plotly, connections
+from preswald import text, connect, view, slider, plotly, connections, Workflow
 import pandas as pd
 import plotly.express as px
+
+# Create workflow
+workflow = Workflow()
 
 # Title
 text("# Earthquake Analytics Dashboard 🌍")
@@ -9,50 +12,58 @@ text("# Earthquake Analytics Dashboard 🌍")
 connection_name = connect("earthquake_data.csv", "earthquake_connection")
 
 # Slider for filtering magnitude
-# here min_magnitude is {'type': 'slider', 'id': 'slider-f6dab796', 'label': 'Minimum Magnitude', 'min': 0.0, 'max': 10.0, 'step': 1, 'value': 5.0}
-min_magnitude = slider("Minimum Magnitude", min_val=0.0,
-                       max_val=10.0, default=5.0)
+min_magnitude = slider("Minimum Magnitude", min_val=0.0, max_val=10.0, default=5.0)
 
-# Read the data and filter based on magnitude
-data = pd.DataFrame(connections[connection_name])
-# Convert Magnitude column to numeric, handling any non-numeric values
-data['Magnitude'] = pd.to_numeric(data['Magnitude'], errors='coerce')
-filtered_data = data[data['Magnitude'] >=
-                     min_magnitude.get('value', min_magnitude)]
+@workflow.atom()
+def load_data():
+    data = pd.DataFrame(connections[connection_name])
+    data['Magnitude'] = pd.to_numeric(data['Magnitude'], errors='coerce')
+    return data
 
-# Summary statistics
-# text(f"### Total Earthquakes with Magnitude ≥ {
-#      min_magnitude.get('value', min_magnitude)}: {len(filtered_data)}")
+@workflow.atom(dependencies=['load_data'])
+def filter_data(load_data):
+    return load_data[load_data['Magnitude'] >= min_magnitude.get('value', min_magnitude)]
 
-# Interactive map using Plotly
+@workflow.atom(dependencies=['filter_data'])
+def create_map(filter_data):
+    fig_map = px.scatter_geo(
+        filter_data,
+        lat='Latitude',
+        lon='Longitude',
+        color='Magnitude',
+        size='Magnitude',
+        hover_name='ID',
+        title="Earthquake Map"
+    )
+    return fig_map
+
+@workflow.atom(dependencies=['filter_data'])
+def create_histogram(filter_data):
+    fig_hist = px.histogram(
+        filter_data,
+        x="Magnitude",
+        nbins=20,
+        title="Distribution of Magnitudes"
+    )
+    return fig_hist
+
+@workflow.atom(dependencies=['filter_data'])
+def create_scatter(filter_data):
+    fig_scatter = px.scatter(
+        filter_data,
+        x="Depth",
+        y="Magnitude",
+        color="Magnitude",
+        title="Depth vs Magnitude",
+        labels={"Depth": "Depth (km)", "Magnitude": "Magnitude"}
+    )
+    return fig_scatter
+
+# Execute workflow
+results = workflow.execute()
+
+# Display visualizations
 text("## Earthquake Locations")
-fig_map = px.scatter_geo(
-    filtered_data,
-    lat='Latitude',
-    lon='Longitude',
-    color='Magnitude',
-    size='Magnitude',
-    hover_name='ID',
-    title="Earthquake Map"
-)
-plotly(fig_map)
-
-# Magnitude distribution
-fig_hist = px.histogram(
-    filtered_data,
-    x="Magnitude",
-    nbins=20,
-    title="Distribution of Magnitudes"
-)
-plotly(fig_hist)
-
-# Depth vs. Magnitude scatter plot
-fig_scatter = px.scatter(
-    filtered_data,
-    x="Depth",
-    y="Magnitude",
-    color="Magnitude",
-    title="Depth vs Magnitude",
-    labels={"Depth": "Depth (km)", "Magnitude": "Magnitude"}
-)
-plotly(fig_scatter)
+plotly(results['create_map'].value)
+plotly(results['create_histogram'].value)
+plotly(results['create_scatter'].value)
