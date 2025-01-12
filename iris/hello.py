@@ -14,17 +14,16 @@ min_petal_length = slider("Minimum Petal Length", min_val=0.0,
                           max_val=7.0, default=2.0)
 
 # Load the Iris dataset and filter based on petal length
-# Replace `connections[connection_name]` with the actual data-loading logic if needed
-data = pd.read_csv("iris.csv")  # Assuming the dataset is in a CSV file
+data = pd.read_csv("iris.csv")
 data['petal.length'] = pd.to_numeric(data['petal.length'], errors='coerce')
 
 # Filter data based on the slider value
 filtered_data = data[data['petal.length'] >=
                      min_petal_length.get('value', min_petal_length)]
 
-# # Summary of filtered data
-# text(f"### Total Records with Petal Length ≥ {
-#      min_petal_length.get('value', min_petal_length)}: {len(filtered_data)}")
+# Summary of filtered data
+text(f"### Total Records with Petal Length ≥ {
+     min_petal_length.get('value', min_petal_length)}: {len(filtered_data)}")
 
 # Petal vs Sepal Length scatter plot
 text("## Petal vs Sepal Length Scatter Plot")

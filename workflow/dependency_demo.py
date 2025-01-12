@@ -4,21 +4,26 @@ import random
 # Create a sample workflow
 workflow = Workflow()
 
+
 @workflow.atom()
 def load_data():
     return [1, 2, 3, 4, 5]
+
 
 @workflow.atom(dependencies=['load_data'])
 def process_data(load_data):
     return [x * 2 for x in load_data]
 
+
 @workflow.atom(dependencies=['process_data'])
 def analyze_data(process_data):
     return {'total': sum(process_data), 'average': sum(process_data)/len(process_data)}
 
+
 @workflow.atom(dependencies=['process_data'])
 def visualize_data(process_data):
     return f"Data visualization for {process_data}"
+
 
 # Create analyzer
 analyzer = WorkflowAnalyzer(workflow)
@@ -28,7 +33,7 @@ workflow.execute()
 
 # Create and display visualization
 fig = analyzer.visualize()
-fig.show()  # Opens in web browser
+# fig.show()  # Opens in web browser
 
 # Show critical path
 critical_path = analyzer.get_critical_path()
