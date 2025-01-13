@@ -1,4 +1,4 @@
-from preswald import text, connect, view, slider, plotly, connections, Workflow
+from preswald import text, connect, view, slider, plotly, connections, Workflow, workflow_dag
 import pandas as pd
 import plotly.express as px
 
@@ -12,9 +12,7 @@ text("# Earthquake Analytics Dashboard 🌍")
 connection_name = connect("data/earthquake_data.csv", "earthquake_connection")
 
 # Slider for filtering magnitude
-min_magnitude = slider("Minimum Magnitude", min_val=0.0,
-                       max_val=10.0, default=5.0)
-
+min_magnitude = slider("Minimum Magnitude", min_val=0.0, max_val=10.0, default=5.0)
 
 @workflow.atom()
 def load_data():
@@ -22,11 +20,9 @@ def load_data():
     data['Magnitude'] = pd.to_numeric(data['Magnitude'], errors='coerce')
     return data
 
-
 @workflow.atom(dependencies=['load_data'])
 def filter_data(load_data):
     return load_data[load_data['Magnitude'] >= min_magnitude.get('value', min_magnitude)]
-
 
 @workflow.atom(dependencies=['filter_data'])
 def create_map(filter_data):
@@ -41,7 +37,6 @@ def create_map(filter_data):
     )
     return fig_map
 
-
 @workflow.atom(dependencies=['filter_data'])
 def create_histogram(filter_data):
     fig_hist = px.histogram(
@@ -51,7 +46,6 @@ def create_histogram(filter_data):
         title="Distribution of Magnitudes"
     )
     return fig_hist
-
 
 @workflow.atom(dependencies=['filter_data'])
 def create_scatter(filter_data):
@@ -65,9 +59,12 @@ def create_scatter(filter_data):
     )
     return fig_scatter
 
-
 # Execute workflow
 results = workflow.execute()
+
+# Display workflow structure
+text("## Workflow Structure")
+workflow_dag(workflow, title="Earthquake Analytics Workflow")
 
 # Display visualizations
 text("## Earthquake Locations")
